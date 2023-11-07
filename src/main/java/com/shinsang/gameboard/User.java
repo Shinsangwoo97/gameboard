@@ -51,13 +51,12 @@ public class User {
     @Column(name = "deleted_at")
     private Timestamp deletedAt; // 회원 탈퇴
 
-    public User(String username, String nickname, String userImage, Long kakaoId, LocalDateTime userLastLogin, Timestamp registerAt) {
+    public User(String username, String nickname, String userImage, Long kakaoId, LocalDateTime userLastLogin) {
         this.username = username;
         this.nickname = nickname;
         this.userImage = userImage;
         this.kakaoId = kakaoId;
         this.userLastLogin = userLastLogin;
-        this.registerAt = registerAt;
     }
     @PrePersist
     void registeredAt(){
