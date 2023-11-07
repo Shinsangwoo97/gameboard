@@ -3,9 +3,11 @@ package com.shinsang.gameboard.kakao;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.shinsang.gameboard.User;
-import com.shinsang.gameboard.UserRepository;
+import com.shinsang.gameboard.user.User;
+import com.shinsang.gameboard.user.UserDetailsImpl;
+import com.shinsang.gameboard.user.UserRepository;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -13,13 +15,16 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
-
+@Slf4j
 @Service
 public class KakaoUserService {
 
@@ -38,6 +43,10 @@ public class KakaoUserService {
         KakaoLoginInfoDto kakaoUserInfo = getKakaoUserInfo(accessToken);
         // 3. 유저확인 & 회원가입
         User foundUser = kakaoUserCheckAndRegister(kakaoUserInfo);
+        // 4. 시큐리티 강제 로그인
+        Authentication authentication = securityLogin(foundUser);
+
+
     }
 
     // #1 - 인가코드로 엑세스토큰 가져오기
@@ -115,16 +124,32 @@ public class KakaoUserService {
 
         String username = kakaoLoginInfoDto.getEmail();
         String nickname = kakaoLoginInfoDto.getNickname();
-        String profileImgUrl = kakaoLoginInfoDto.getProfileImgUrl();
+        String userImage = kakaoLoginInfoDto.getProfileImgUrl();
         Long kakaoId = kakaoLoginInfoDto.getId();
         LocalDateTime now = LocalDateTime.now();
 
         User kakaoUser = userRepository.findByUsername(username)
                 .orElse(null);
         if(kakaoUser == null) {
-            kakaoUser = new User(username, nickname, profileImgUrl, kakaoId, now);
+            kakaoUser = new User(username, nickname, userImage, kakaoId, now);
             userRepository.save(kakaoUser);
         }
         return kakaoUser;
+    }
+    // 4. 시큐리티 강제 로그인
+    private Authentication securityLogin(User findUser) {
+
+        // userDetails 생성
+        UserDetailsImpl userDetails = new UserDetailsImpl(findUser);
+        log.warn("카카오 로그인 완료 : " + userDetails.getUser().getUsername());
+        // UsernamePasswordAuthenticationToken 발급
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                userDetails,
+                null,
+                userDetails.getAuthorities()
+        );
+        // 강제로 시큐리티 세션에 접근하여 authentication 객체를 저장
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        return authentication;
     }
 }

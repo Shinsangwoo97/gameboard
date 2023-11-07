@@ -1,5 +1,6 @@
-package com.shinsang.gameboard;
+package com.shinsang.gameboard.user;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -28,6 +29,10 @@ public class User {
 
     @Column(nullable = false)
     private String username; //email 아이디
+
+    @JsonIgnore
+    @Column
+    private String password;
 
     @Column(nullable = false)
     private String nickname;

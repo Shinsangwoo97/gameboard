@@ -1,5 +1,6 @@
-package com.shinsang.gameboard;
+package com.shinsang.gameboard.user;
 
+import com.shinsang.gameboard.user.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
