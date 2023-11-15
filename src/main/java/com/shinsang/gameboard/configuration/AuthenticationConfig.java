@@ -19,7 +19,10 @@ public class AuthenticationConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(requests -> requests
-                        .requestMatchers("/api/*/users/join", "/api/*/users/login", "/oauth/kakao").permitAll()
+                        .requestMatchers("/api/*/users/join", "/api/*/users/login", "/oauth/**").permitAll()
+                        .requestMatchers("http://localhost:3000/**").permitAll()
+                        .requestMatchers("/api/**").permitAll()
+                        .requestMatchers("https://kauth.kakao.com/oauth/token").permitAll()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(config -> config.sessionCreationPolicy(SessionCreationPolicy.STATELESS));

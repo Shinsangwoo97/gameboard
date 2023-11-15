@@ -3,6 +3,7 @@ package com.shinsang.gameboard.kakao;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.shinsang.gameboard.configuration.JwtTokenUtils;
 import com.shinsang.gameboard.user.User;
 import com.shinsang.gameboard.user.UserDetailsImpl;
 import com.shinsang.gameboard.user.UserRepository;
@@ -36,17 +37,18 @@ public class KakaoUserService {
     @Autowired
     private UserRepository userRepository;
 
-    public void kakaoLogin(String code, HttpServletResponse response) throws JsonProcessingException {
+    public SocialLoginInfoDto kakaoLogin(String code, HttpServletResponse response) throws JsonProcessingException {
         // 1. 인가코드로 엑세스토큰 가져오기
         String accessToken = getAccessToken(code);
         // 2. 엑세스토큰으로 유저정보 가져오기
-        KakaoLoginInfoDto kakaoUserInfo = getKakaoUserInfo(accessToken);
+        SocialLoginInfoDto kakaoUserInfo = getKakaoUserInfo(accessToken);
         // 3. 유저확인 & 회원가입
         User foundUser = kakaoUserCheckAndRegister(kakaoUserInfo);
         // 4. 시큐리티 강제 로그인
         Authentication authentication = securityLogin(foundUser);
-
-
+        // 5. jwt 토큰 발급
+        jwtToken(response, authentication);
+        return kakaoUserInfo;
     }
 
     // #1 - 인가코드로 엑세스토큰 가져오기
@@ -63,9 +65,9 @@ public class KakaoUserService {
         params.add("redirect_uri", REDIRECT_URL);
         params.add("code", code);
 //        params.add("client_secret", "authorization_code"); 필수는 아니지만 보안강화 할떄 필요함
-
         // POST 요청 보내기
         HttpEntity<MultiValueMap<String, String>> kakaoTokenReg = new HttpEntity<>(params, headers);
+
         RestTemplate restTemplate = new RestTemplate();
         ResponseEntity<String> response = restTemplate.exchange(
                 "https://kauth.kakao.com/oauth/token",
@@ -73,16 +75,19 @@ public class KakaoUserService {
                 kakaoTokenReg,
                 String.class
         );
+        System.out.println("리스폰스111"+response);
 
         // response에서 엑세스토큰 가져오기
         String tokenJson = response.getBody();
+        System.out.println("토큰 제이슨"+tokenJson);
         JSONObject jsonObject = new JSONObject(tokenJson);
         String accessToken = jsonObject.getString("access_token");
+        System.out.println("토큰" + accessToken);
         return accessToken;
     }
 
     // #2. 엑세스토큰으로 유저정보 가져오기
-    private KakaoLoginInfoDto getKakaoUserInfo(String accessToken) throws JsonProcessingException {
+    private SocialLoginInfoDto getKakaoUserInfo(String accessToken) throws JsonProcessingException {
         // HTTP Header 생성
         HttpHeaders headers = new HttpHeaders();
         headers.add("Authorization", "Bearer " + accessToken);
@@ -97,7 +102,7 @@ public class KakaoUserService {
                 kakaoUserInfoRequest,
                 String.class
         );
-
+        System.out.println("포스트 보낸후"+response);
         String responseBody = response.getBody();
 
         ObjectMapper objectMapper = new ObjectMapper();
@@ -117,14 +122,15 @@ public class KakaoUserService {
         System.out.println("nickname: " + nickname);
         System.out.println("userimage: " + userimage);
         System.out.println("email: " + email);
-        return new KakaoLoginInfoDto(id, nickname, email, userimage);
+        return new SocialLoginInfoDto(id, nickname, email, userimage);
     }
     // #3.  가입된 유저확인 & 회원가입
-    private User kakaoUserCheckAndRegister(KakaoLoginInfoDto kakaoLoginInfoDto) {
+    private User kakaoUserCheckAndRegister(SocialLoginInfoDto kakaoLoginInfoDto) {
 
         String username = kakaoLoginInfoDto.getEmail();
         String nickname = kakaoLoginInfoDto.getNickname();
         String userImage = kakaoLoginInfoDto.getProfileImgUrl();
+        System.out.println(userImage);
         Long kakaoId = kakaoLoginInfoDto.getId();
         LocalDateTime now = LocalDateTime.now();
 
@@ -151,5 +157,13 @@ public class KakaoUserService {
         // 강제로 시큐리티 세션에 접근하여 authentication 객체를 저장
         SecurityContextHolder.getContext().setAuthentication(authentication);
         return authentication;
+    }
+    // 5. jwt 토큰 발급
+    private void jwtToken(HttpServletResponse response, Authentication authentication) {
+
+        UserDetailsImpl userDetailsImpl = ((UserDetailsImpl) authentication.getPrincipal());
+        String token = JwtTokenUtils.generateJwtToken(userDetailsImpl);
+        response.addHeader("Authorization", token);
+//        response.addHeader("Authorization",token);
     }
 }
