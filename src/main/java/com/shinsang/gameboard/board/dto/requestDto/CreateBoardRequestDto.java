@@ -1,16 +1,12 @@
 package com.shinsang.gameboard.board.dto.requestDto;
 
-import com.shinsang.gameboard.board.model.Category;
 import lombok.Getter;
+import lombok.Setter;
 
 @Getter
+@Setter
 public class CreateBoardRequestDto {
-    private Category category;
-    private String username;
-    private String password;
-    private String passwordCheck;
     private String title;
     private String content;
-    private String image;
 }
 

@@ -53,7 +53,6 @@ public class KakaoUserService {
 
     // #1 - 인가코드로 엑세스토큰 가져오기
     private String getAccessToken(String code) {
-
         // 헤더에 Content-type 지정
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-type", "application/x-www-form-urlencoded;charset=utf-8");
@@ -75,14 +74,11 @@ public class KakaoUserService {
                 kakaoTokenReg,
                 String.class
         );
-        System.out.println("리스폰스111"+response);
 
         // response에서 엑세스토큰 가져오기
         String tokenJson = response.getBody();
-        System.out.println("토큰 제이슨"+tokenJson);
         JSONObject jsonObject = new JSONObject(tokenJson);
         String accessToken = jsonObject.getString("access_token");
-        System.out.println("토큰" + accessToken);
         return accessToken;
     }
 
@@ -102,7 +98,6 @@ public class KakaoUserService {
                 kakaoUserInfoRequest,
                 String.class
         );
-        System.out.println("포스트 보낸후"+response);
         String responseBody = response.getBody();
 
         ObjectMapper objectMapper = new ObjectMapper();
@@ -118,10 +113,10 @@ public class KakaoUserService {
         String email = (jsonNode.get("kakao_account")
                 .get("email") != null) ? jsonNode.get("kakao_account")
                 .get("email").asText() : null;
-        System.out.println("id: " + id);
-        System.out.println("nickname: " + nickname);
-        System.out.println("userimage: " + userimage);
-        System.out.println("email: " + email);
+//        System.out.println("id: " + id);
+//        System.out.println("nickname: " + nickname);
+//        System.out.println("userimage: " + userimage);
+//        System.out.println("email: " + email);
         return new SocialLoginInfoDto(id, nickname, email, userimage);
     }
     // #3.  가입된 유저확인 & 회원가입
@@ -130,7 +125,6 @@ public class KakaoUserService {
         String username = kakaoLoginInfoDto.getEmail();
         String nickname = kakaoLoginInfoDto.getNickname();
         String userImage = kakaoLoginInfoDto.getProfileImgUrl();
-        System.out.println(userImage);
         Long kakaoId = kakaoLoginInfoDto.getId();
         LocalDateTime now = LocalDateTime.now();
 
@@ -164,6 +158,5 @@ public class KakaoUserService {
         UserDetailsImpl userDetailsImpl = ((UserDetailsImpl) authentication.getPrincipal());
         String token = JwtTokenUtils.generateJwtToken(userDetailsImpl);
         response.addHeader("Authorization", token);
-//        response.addHeader("Authorization",token);
     }
 }
